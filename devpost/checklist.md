@@ -59,7 +59,7 @@ Build mode: fast
   Learner check: Test invalid inputs and sample fallback to verify friendly error messaging.
   Commit: `Add loading steps, error states, and sample fallback`
 
-- [ ] **6. Visual Polish, Accessibility & Vercel Deployment**
+- [x] **6. Visual Polish, Accessibility & Vercel Deployment**
   Becomes usable: Fully polished, accessible, production-ready application deployed to Vercel.
   Why now: Final review pass for visual theme, mobile responsiveness, keyboard accessibility, and production deployment.
   PRD ref: `prd.md > Look and Feel`
@@ -71,18 +71,27 @@ Build mode: fast
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Early usable behavior explored
+- [x] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete
-- [ ] Optional edit and transfer reflection addressed
-- [ ] `devpost/app-map.html` generated
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+
+Activity and evidence: Verified server-side deterministic quote validation, highlight mapping, and Groq SDK integration across all 6 build slices.
+Route and stops: `src/app/api/analyze/route.ts` -> `src/server/groq.ts` -> `src/shared/rules.ts` -> `src/client/components/ReportView.tsx`.
+Edit outcome: Added `fromScreenshot` OCR notification in `PostView.tsx` and updated prompt rules for fresher pay mismatch.
+Reflection: Learner successfully completed self-directed build loop with automated verification checks.
+Activity mode: Live app and editor code map.
 
 ## Revisions
+
+- [Groq AI Provider Switch] — Replaced Gemini with Groq SDK (`groq-sdk`) using structured JSON outputs via `z.toJSONSchema` and 1 retry.
+- [Highlighter Colors] — Updated lane colors to translucent tints behind ink text (`#E5484D` red scam, `#F5C400` yellow ghost, `#2F6FDB` blue mismatch).
 

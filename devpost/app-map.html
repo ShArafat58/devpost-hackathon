@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghostlisted — Take-Home App Map</title>
+  <style>
+    :root {
+      --bg-paper: #f4f1ea;
+      --bg-card: #fbf9f4;
+      --bg-deep: #ebe5d7;
+      --ink: #1b1b1b;
+      --ink-soft: #55514a;
+      --border: #d9d1bf;
+      --scam: #e5484d;
+      --ghost: #f5c400;
+      --mismatch: #2f6fdb;
+    }
+    body {
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 {
+      font-family: Georgia, serif;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .card {
+      background-color: var(--bg-card);
+      border: 1.5px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      border-radius: 6px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    code, pre {
+      font-family: ui-monospace, monospace;
+      font-size: 0.9em;
+      background: var(--bg-deep);
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+    }
+    pre {
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    .diagram {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: var(--bg-deep);
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .box {
+      background: var(--bg-card);
+      border: 1px solid var(--ink);
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .arrow {
+      font-weight: bold;
+      color: var(--ink-soft);
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Ghostlisted — App Map & Guide</h1>
+  <p><em>Take-home summary of system flow, code architecture, and key locations.</em></p>
+
+  <div class="card">
+    <h2>1. How Data Flows Through Ghostlisted</h2>
+    <div class="diagram">
+      <div class="box">Client Input<br><code>InputPanel.tsx</code></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">API Route<br><code>route.ts</code></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Groq SDK<br><code>groq.ts</code></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Rules Engine<br><code>rules.ts</code></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Interactive UI<br><code>ReportView.tsx</code></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Key Code Locations</h2>
+    <ul>
+      <li><strong>User Input & Context:</strong> <code>src/client/components/InputPanel.tsx</code> & <code>ContextChips.tsx</code></li>
+      <li><strong>API & AI Prompt:</strong> <code>src/app/api/analyze/route.ts</code>, <code>src/server/groq.ts</code>, and <code>src/server/prompt.ts</code></li>
+      <li><strong>Deterministic Rules:</strong> <code>src/shared/rules.ts</code> (Quote matching & <code>nextMove</code> stamp selection)</li>
+      <li><strong>Highlight Alignment:</strong> <code>src/shared/highlight.ts</code> (Maps quotes to character indices & resolves overlapping lane colors)</li>
+      <li><strong>Report Rendering:</strong> <code>src/client/components/ReportView.tsx</code>, <code>PostView.tsx</code>, <code>LaneCard.tsx</code>, and <code>NextMoveStamp.tsx</code></li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>3. To Change Something, Start Here</h2>
+    <ul>
+      <li><strong>AI prompt rules or lane definitions:</strong> Modify <code>src/server/prompt.ts</code>.</li>
+      <li><strong>Quote validation or stamp recommendation logic:</strong> Modify <code>src/shared/rules.ts</code>.</li>
+      <li><strong>Highlight color tokens or paper-card styling:</strong> Modify <code>src/app/globals.css</code>.</li>
+      <li><strong>Sample posts data:</strong> Modify <code>src/shared/data/samples.ts</code> and run <code>npm run capture:samples</code>.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>4. A Practice to Reuse</h2>
+    <p><strong>Decouple AI Outputs from Deterministic Sanitization:</strong></p>
+    <p>Rather than trusting raw AI outputs directly in the UI, Ghostlisted runs pure deterministic TypeScript rules (<code>validateQuotes</code> and <code>nextMove</code>) on the server before sending data to the browser. This guarantees that hallucinated quotes never reach the user interface.</p>
+  </div>
+
+  <div class="card">
+    <h2>5. How to Run Locally</h2>
+    <pre>npm run dev      # Start Next.js dev server at http://localhost:3000
+npm run typecheck # Run TypeScript checks
+npm test         # Run Vitest unit tests</pre>
+  </div>
+
+</body>
+</html>
