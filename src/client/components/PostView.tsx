@@ -20,7 +20,7 @@ export function PostView({ segments, containerRef, fromScreenshot }: PostViewPro
                 </h3>
                 <p className="mt-0.5 text-xs text-ink-soft">
                     {fromScreenshot
-                        ? "Read by AI from the image. Lines that triggered a signal are highlighted."
+                        ? "Read by AI from the image. AI reading can contain small errors, so compare it with your screenshot. Lines that triggered a signal are highlighted."
                         : "Lines that triggered a signal are highlighted in their lane's color."}
                 </p>
             </header>

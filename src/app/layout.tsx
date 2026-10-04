@@ -36,10 +36,18 @@ const bengali = Noto_Sans_Bengali({
     display: "swap",
 });
 
+const TITLE = "Ghostlisted — Is anyone really hiring?";
+const DESCRIPTION =
+    "Check a job post for scam, ghost-job, and fresher-mismatch signals before you apply. Paste text or upload a screenshot, in English or Bengali.";
+
 export const metadata: Metadata = {
-    title: "Ghostlisted — Is anyone really hiring?",
-    description:
-        "Check a job post for scam, ghost-job, and fresher-mismatch signals before you apply.",
+    title: TITLE,
+    description: DESCRIPTION,
+    openGraph: {
+        title: TITLE,
+        description: DESCRIPTION,
+        type: "website",
+    },
 };
 
 export const viewport: Viewport = {

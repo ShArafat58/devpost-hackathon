@@ -32,6 +32,7 @@ Look for evidence-based warning signals in three lanes:
 1. scam — signs the post may be a fraud: asking for fees or deposits, asking for ID documents or bank details before any interview, contact only through Telegram/WhatsApp or personal accounts, unrealistic pay for little work, extreme urgency, "no interview required".
 2. ghost — signs there may be no real intent to hire right now: evergreen or "talent community" language, "open until filled" or no deadline, vague duties with no team or manager, vague or missing salary information, invitations to reapply, multiple undefined openings.
 3. mismatch — ONLY for posts that present the role as fresher, graduate, trainee, entry-level, junior, or intern. Signals are requirements or terms that contradict that label: years of professional experience, leadership or people-management requirements, senior ownership duties, pay "based on experience". If the post does not present the role with one of those labels, the mismatch lane must be "low" with no signals.
+   In a post with one of those labels, pay described as "based on experience" (in any language) belongs in mismatch, not ghost, because a fresher has no experience to be paid for.
 
 RULES FOR SIGNALS
 - Put each piece of evidence in the single lane it fits best. Never repeat the same quote in two lanes.
