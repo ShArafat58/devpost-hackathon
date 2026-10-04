@@ -9,10 +9,11 @@ import { LANE_ORDER, type ProcessedReport } from "@/shared/types";
 
 interface ReportViewProps {
     report: ProcessedReport;
+    fromScreenshot: boolean;
     onReset: () => void;
 }
 
-export function ReportView({ report, onReset }: ReportViewProps) {
+export function ReportView({ report, fromScreenshot, onReset }: ReportViewProps) {
     const postRef = useRef<HTMLDivElement>(null);
     const [activeSignalId, setActiveSignalId] = useState<string | null>(null);
 
@@ -75,7 +76,11 @@ export function ReportView({ report, onReset }: ReportViewProps) {
 
                 <div className="lg:col-start-1 lg:row-start-1">
                     <div className="lg:sticky lg:top-6">
-                        <PostView segments={segments} containerRef={postRef} />
+                        <PostView
+                            segments={segments}
+                            containerRef={postRef}
+                            fromScreenshot={fromScreenshot}
+                        />
                     </div>
                 </div>
             </div>

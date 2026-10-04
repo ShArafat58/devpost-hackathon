@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ContextChips } from "@/client/components/ContextChips";
 import { InputPanel, type InputTab } from "@/client/components/InputPanel";
 import { ReportView } from "@/client/components/ReportView";
+import { isAcceptedImage, prepareImage } from "@/client/lib/image";
 import { SAMPLE_POSTS, type SamplePost } from "@/shared/data/samples";
 import {
     ERROR_MESSAGES,
@@ -34,16 +35,21 @@ export default function Home() {
     const [tab, setTab] = useState<InputTab>("text");
     const [text, setText] = useState("");
     const [file, setFile] = useState<File | null>(null);
+    const [fileError, setFileError] = useState<string | null>(null);
     const [sampleId, setSampleId] = useState<SamplePost["id"] | null>(null);
     const [context, setContext] = useState<Context>(DEFAULT_CONTEXT);
 
     const [status, setStatus] = useState<Status>("idle");
     const [report, setReport] = useState<ProcessedReport | null>(null);
+    const [reportFromScreenshot, setReportFromScreenshot] = useState(false);
     const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
 
-    // Screenshot checks are enabled in Slice 4
     const hasInput =
-        tab === "text" ? text.trim().length > 0 : tab === "sample" ? sampleId !== null : false;
+        tab === "text"
+            ? text.trim().length > 0
+            : tab === "image"
+                ? file !== null
+                : sampleId !== null;
 
     function clearError() {
         if (status === "error") {
@@ -62,6 +68,17 @@ export default function Home() {
         clearError();
     }
 
+    function handleFileChange(next: File | null) {
+        clearError();
+        if (next && !isAcceptedImage(next)) {
+            setFile(null);
+            setFileError(ERROR_MESSAGES.INVALID_IMAGE.body);
+            return;
+        }
+        setFileError(null);
+        setFile(next);
+    }
+
     function handleSampleChange(id: SamplePost["id"]) {
         setSampleId(id);
         clearError();
@@ -69,13 +86,17 @@ export default function Home() {
         if (sample) setContext(sample.context);
     }
 
-    function buildRequest(): AnalyzeRequest | null {
+    async function buildRequest(): Promise<AnalyzeRequest | null> {
         if (tab === "text") return { mode: "text", text, context };
+
         if (tab === "sample") {
             const sample = SAMPLE_POSTS.find((s) => s.id === sampleId);
             return sample ? { mode: "text", text: sample.text, context } : null;
         }
-        return null;
+
+        if (!file) return null;
+        const image = await prepareImage(file);
+        return { mode: "image", imageBase64: image.base64, mimeType: image.mimeType, context };
     }
 
     function showError(code: ErrorCode) {
@@ -84,16 +105,25 @@ export default function Home() {
     }
 
     async function handleCheck() {
-        const request = buildRequest();
-        if (!request) return;
+        setStatus("loading");
+        setErrorCode(null);
+
+        let request: AnalyzeRequest | null;
+        try {
+            request = await buildRequest();
+        } catch {
+            showError("INVALID_IMAGE");
+            return;
+        }
+        if (!request) {
+            setStatus("idle");
+            return;
+        }
 
         if (request.mode === "text" && request.text.trim().length < MIN_TEXT_CHARS) {
             showError("TOO_SHORT");
             return;
         }
-
-        setStatus("loading");
-        setErrorCode(null);
 
         try {
             const res = await fetch("/api/analyze", {
@@ -116,6 +146,7 @@ export default function Home() {
             }
 
             setReport(nextReport);
+            setReportFromScreenshot(request.mode === "image");
             setStatus("report");
             window.scrollTo({ top: 0 });
         } catch {
@@ -125,11 +156,13 @@ export default function Home() {
 
     function handleReset() {
         setReport(null);
+        setReportFromScreenshot(false);
         setStatus("idle");
         setErrorCode(null);
         setTab("text");
         setText("");
         setFile(null);
+        setFileError(null);
         setSampleId(null);
         setContext(DEFAULT_CONTEXT);
         window.scrollTo({ top: 0 });
@@ -162,7 +195,7 @@ export default function Home() {
             </header>
 
             {showReport ? (
-                <ReportView report={report} onReset={handleReset} />
+                <ReportView report={report} fromScreenshot={reportFromScreenshot} onReset={handleReset} />
             ) : (
                 <>
                     <section aria-labelledby="step-post" className="mb-10">
@@ -173,7 +206,8 @@ export default function Home() {
                             text={text}
                             onTextChange={handleTextChange}
                             file={file}
-                            onFileChange={setFile}
+                            fileError={fileError}
+                            onFileChange={handleFileChange}
                             samples={SAMPLE_POSTS}
                             sampleId={sampleId}
                             onSampleChange={handleSampleChange}

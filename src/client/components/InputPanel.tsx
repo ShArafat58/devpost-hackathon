@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    type DragEvent,
+    type KeyboardEvent,
+} from "react";
 import type { SamplePost } from "@/shared/data/samples";
 
 export type InputTab = "text" | "image" | "sample";
@@ -20,6 +26,7 @@ interface InputPanelProps {
     text: string;
     onTextChange: (text: string) => void;
     file: File | null;
+    fileError: string | null;
     onFileChange: (file: File | null) => void;
     samples: SamplePost[];
     sampleId: SamplePost["id"] | null;
@@ -32,6 +39,7 @@ export function InputPanel({
     text,
     onTextChange,
     file,
+    fileError,
     onFileChange,
     samples,
     sampleId,
@@ -90,7 +98,9 @@ export function InputPanel({
                 className="paper-card rounded-md p-4 sm:p-5"
             >
                 {tab === "text" && <TextPanel text={text} onTextChange={onTextChange} />}
-                {tab === "image" && <ImagePanel file={file} onFileChange={onFileChange} />}
+                {tab === "image" && (
+                    <ImagePanel file={file} error={fileError} onFileChange={onFileChange} />
+                )}
                 {tab === "sample" && (
                     <SamplePanel
                         samples={samples}
@@ -141,13 +151,26 @@ function TextPanel({
 
 function ImagePanel({
     file,
+    error,
     onFileChange,
 }: {
     file: File | null;
+    error: string | null;
     onFileChange: (file: File | null) => void;
 }) {
     const [dragging, setDragging] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!file) {
+            setPreviewUrl(null);
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
 
     function handleDrop(event: DragEvent<HTMLLabelElement>) {
         event.preventDefault();
@@ -156,53 +179,65 @@ function ImagePanel({
         if (dropped) onFileChange(dropped);
     }
 
-    if (file) {
-        return (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-rule bg-paper/40 p-4">
-                <div className="min-w-0">
-                    <p className="truncate font-mono text-sm">{file.name}</p>
-                    <p className="font-mono text-xs text-ink-soft">
-                        {(file.size / 1024).toFixed(0)} KB
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => {
-                        onFileChange(null);
-                        if (inputRef.current) inputRef.current.value = "";
-                    }}
-                    className="rounded-sm border border-ink px-3 py-1.5 text-sm hover:bg-paper-deep"
-                >
-                    Remove
-                </button>
-            </div>
-        );
+    function clearFile() {
+        onFileChange(null);
+        if (inputRef.current) inputRef.current.value = "";
     }
 
     return (
-        <label
-            onDragOver={(event) => {
-                event.preventDefault();
-                setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-sm border-2 border-dashed px-4 py-12 text-center transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink ${dragging ? "border-ink bg-paper-deep" : "border-ink/40 bg-paper/40 hover:bg-paper-deep/60"
-                }`}
-        >
-            <input
-                ref={inputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="sr-only"
-                onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-            />
-            <span className="font-serif text-lg">Drop a screenshot of the post</span>
-            <span className="text-sm text-ink-soft">or click to choose a file</span>
-            <span className="mt-1 font-mono text-xs text-ink-soft">
-                JPG, PNG, or WebP · up to 4 MB
-            </span>
-        </label>
+        <div className="space-y-3">
+            {file && previewUrl ? (
+                <div className="flex flex-wrap items-center gap-4 rounded-sm border border-rule bg-paper/40 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+                    <img
+                        src={previewUrl}
+                        alt="Preview of the uploaded job post screenshot"
+                        className="h-28 w-auto max-w-[45%] rounded-sm border border-ink/20 object-contain"
+                    />
+                    <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-sm">{file.name}</p>
+                        <p className="font-mono text-xs text-ink-soft">{(file.size / 1024).toFixed(0)} KB</p>
+                        <button
+                            type="button"
+                            onClick={clearFile}
+                            className="mt-2 rounded-sm border border-ink px-3 py-1.5 text-sm hover:bg-paper-deep"
+                        >
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <label
+                    onDragOver={(event) => {
+                        event.preventDefault();
+                        setDragging(true);
+                    }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={handleDrop}
+                    className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-sm border-2 border-dashed px-4 py-12 text-center transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink ${dragging ? "border-ink bg-paper-deep" : "border-ink/40 bg-paper/40 hover:bg-paper-deep/60"
+                        }`}
+                >
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+                    />
+                    <span className="font-serif text-lg">Drop a screenshot of the post</span>
+                    <span className="text-sm text-ink-soft">or click to choose a file</span>
+                    <span className="mt-1 font-mono text-xs text-ink-soft">
+                        JPG, PNG, or WebP · up to 4 MB
+                    </span>
+                </label>
+            )}
+
+            {error && (
+                <p role="alert" className="rounded-sm border border-stamp-skip/60 bg-stamp-skip/5 px-3 py-2 text-sm">
+                    {error}
+                </p>
+            )}
+        </div>
     );
 }
 

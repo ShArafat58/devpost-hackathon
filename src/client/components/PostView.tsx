@@ -7,18 +7,21 @@ import type { Segment } from "@/shared/highlight";
 interface PostViewProps {
     segments: Segment[];
     containerRef: RefObject<HTMLDivElement | null>;
+    fromScreenshot: boolean;
 }
 
-export function PostView({ segments, containerRef }: PostViewProps) {
+export function PostView({ segments, containerRef, fromScreenshot }: PostViewProps) {
     return (
         <section aria-labelledby="post-view-title" className="paper-card rounded-md">
             <header className="border-b border-rule px-4 py-3 sm:px-5">
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">Exhibit A</p>
                 <h3 id="post-view-title" className="font-serif text-lg">
-                    The post
+                    {fromScreenshot ? "Text read from your screenshot" : "The post"}
                 </h3>
                 <p className="mt-0.5 text-xs text-ink-soft">
-                    Lines that triggered a signal are highlighted in their lane&apos;s color.
+                    {fromScreenshot
+                        ? "Read by AI from the image. Lines that triggered a signal are highlighted."
+                        : "Lines that triggered a signal are highlighted in their lane's color."}
                 </p>
             </header>
 
