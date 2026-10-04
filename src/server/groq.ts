@@ -27,13 +27,24 @@ function responseJsonSchema(): Record<string, unknown> {
     return cachedJsonSchema;
 }
 
-function getConfig(): { apiKey: string; model: string } {
+/**
+ * Models to try in order. Groq rate limits are per model.
+ * Images need the vision model; text requests can fall back to a text-only model.
+ */
+function getModels(mode: AnalyzeRequest["mode"]): { apiKey: string; models: string[] } {
     const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL;
-    if (!apiKey || !model) {
+    const primary = process.env.GROQ_MODEL;
+    const textFallback = process.env.GROQ_TEXT_FALLBACK_MODEL;
+
+    if (!apiKey || !primary) {
         throw new AnalyzeError("AI_ERROR", "GROQ_API_KEY or GROQ_MODEL is not set");
     }
-    return { apiKey, model };
+
+    const models = [primary];
+    if (mode === "text" && textFallback && textFallback !== primary) {
+        models.push(textFallback);
+    }
+    return { apiKey, models };
 }
 
 type ParseResult =
@@ -59,26 +70,21 @@ function parseReply(raw: string | null | undefined): ParseResult {
     return { success: true, data: result.data };
 }
 
-export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeResponse> {
-    const { apiKey, model } = getConfig();
-    const client = new Groq({ apiKey });
+type UserContent =
+    | string
+    | (
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+    )[];
 
-    const schema = responseJsonSchema();
-    const systemPrompt = buildSystemPrompt(JSON.stringify(schema));
-    const userText = buildUserText(request);
-
-    const userContent =
-        request.mode === "image"
-            ? [
-                { type: "text" as const, text: userText },
-                {
-                    type: "image_url" as const,
-                    image_url: { url: `data:${request.mimeType};base64,${request.imageBase64}` },
-                },
-            ]
-            : userText;
-
-    const maxTokens = request.mode === "image" ? MAX_TOKENS_IMAGE : MAX_TOKENS_TEXT;
+async function runWithModel(
+    client: Groq,
+    model: string,
+    systemPrompt: string,
+    userContent: UserContent,
+    schema: Record<string, unknown>,
+    maxTokens: number,
+): Promise<AnalyzeResponse> {
     let lastProblem = "unknown";
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -102,19 +108,53 @@ export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeRespo
         } catch (error) {
             if (error instanceof Groq.APIError && error.status === 429) {
                 // Groq's message names the exact limit that was hit (RPM, TPM, RPD or TPD)
-                console.warn("[groq] rate limited:", error.message);
+                console.warn(`[groq] ${model} rate limited:`, error.message);
                 throw new AnalyzeError("RATE_LIMITED");
             }
             const message = error instanceof Error ? error.message : "Groq request failed";
-            throw new AnalyzeError("AI_ERROR", message);
+            throw new AnalyzeError("AI_ERROR", `${model}: ${message}`);
         }
 
         const parsed = parseReply(raw);
         if (parsed.success) return parsed.data;
 
         lastProblem = parsed.problem;
-        console.warn(`[groq] attempt ${attempt} rejected: ${lastProblem}`);
+        console.warn(`[groq] ${model} attempt ${attempt} rejected: ${lastProblem}`);
     }
 
-    throw new AnalyzeError("AI_ERROR", `AI reply failed validation: ${lastProblem}`);
+    throw new AnalyzeError("AI_ERROR", `${model}: AI reply failed validation: ${lastProblem}`);
+}
+
+export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeResponse> {
+    const { apiKey, models } = getModels(request.mode);
+    const client = new Groq({ apiKey });
+
+    const schema = responseJsonSchema();
+    const systemPrompt = buildSystemPrompt(JSON.stringify(schema));
+    const userText = buildUserText(request);
+
+    const userContent: UserContent =
+        request.mode === "image"
+            ? [
+                { type: "text", text: userText },
+                {
+                    type: "image_url",
+                    image_url: { url: `data:${request.mimeType};base64,${request.imageBase64}` },
+                },
+            ]
+            : userText;
+
+    const maxTokens = request.mode === "image" ? MAX_TOKENS_IMAGE : MAX_TOKENS_TEXT;
+
+    for (const model of models) {
+        try {
+            return await runWithModel(client, model, systemPrompt, userContent, schema, maxTokens);
+        } catch (error) {
+            // Only a rate limit moves on to the next model; other errors surface immediately
+            if (error instanceof AnalyzeError && error.code === "RATE_LIMITED") continue;
+            throw error;
+        }
+    }
+
+    throw new AnalyzeError("RATE_LIMITED");
 }
