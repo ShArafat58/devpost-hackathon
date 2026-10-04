@@ -11,6 +11,10 @@ import {
 
 const MAX_ATTEMPTS = 2;
 
+// Real replies stay well under these; smaller caps also keep us further from per-minute token limits
+const MAX_TOKENS_TEXT = 1500;
+const MAX_TOKENS_IMAGE = 3000;
+
 let cachedJsonSchema: Record<string, unknown> | null = null;
 
 /** One source of truth: the JSON Schema sent to Groq is generated from the Zod schema. */
@@ -74,6 +78,7 @@ export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeRespo
             ]
             : userText;
 
+    const maxTokens = request.mode === "image" ? MAX_TOKENS_IMAGE : MAX_TOKENS_TEXT;
     let lastProblem = "unknown";
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -83,7 +88,7 @@ export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeRespo
             const completion = await client.chat.completions.create({
                 model,
                 temperature: 0.2,
-                max_completion_tokens: 4096,
+                max_completion_tokens: maxTokens,
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userContent },
@@ -96,6 +101,8 @@ export async function analyzePost(request: AnalyzeRequest): Promise<AnalyzeRespo
             raw = completion.choices[0]?.message?.content;
         } catch (error) {
             if (error instanceof Groq.APIError && error.status === 429) {
+                // Groq's message names the exact limit that was hit (RPM, TPM, RPD or TPD)
+                console.warn("[groq] rate limited:", error.message);
                 throw new AnalyzeError("RATE_LIMITED");
             }
             const message = error instanceof Error ? error.message : "Groq request failed";
