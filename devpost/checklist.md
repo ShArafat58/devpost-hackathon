@@ -19,8 +19,8 @@ Build mode: fast
   Learner check: Open app in browser and verify tabs, context chips, and text area render properly.
   Commit: `Add scaffold and static input UI`
 
-- [ ] **2. Gemini API Route & Samples**
-  Becomes usable: Text payload posted to API endpoint processes through Gemini server logic or sample data.
+- [x] **2. Groq API Route & Samples**
+  Becomes usable: Text payload posted to API endpoint processes through Groq server logic or sample data.
   Why now: Proves server-side integration and API data contracts early.
   PRD ref: `prd.md > Core Journey (Step 4)`
   Spec ref: `spec.md > Data Model`, `spec.md > External Services`

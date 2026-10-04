@@ -8,8 +8,8 @@ status: approved
 ## How This Works, In Plain Language
 Ghostlisted is a single-page Next.js web application designed to help fresh job seekers detect warning signals in job listings before applying. 
 
-1. **Input & Extraction**: The user pastes job post text or uploads a screenshot (or selects a pre-loaded sample). If a screenshot is provided, client-side canvas logic in `src/client/lib/image.ts` validates and resizes the image before sending it to a Next.js API route (`src/app/api/analyze/route.ts`), where Google's Gemini Flash model reads the image and extracts its text.
-2. **AI Signal Extraction**: The server logic (`src/server/gemini.ts` and `src/server/prompt.ts`, protected by `import "server-only"`) passes the post text and context choices to Gemini with strict system instructions and a JSON response schema generated directly from Zod (`src/shared/schema.ts`). Gemini returns structured signals categorized into Scam, Ghost, and Fresher-Mismatch lanes with exact quotes.
+1. **Input & Extraction**: The user pastes job post text or uploads a screenshot (or selects a pre-loaded sample). If a screenshot is provided, client-side canvas logic in `src/client/lib/image.ts` validates and resizes the image before sending it to a Next.js API route (`src/app/api/analyze/route.ts`), where Groq AI model reads the image and extracts its text.
+2. **AI Signal Extraction**: The server logic (`src/server/groq.ts` and `src/server/prompt.ts`, protected by `import "server-only"`) passes the post text and context choices to Groq with strict system instructions and a JSON response schema generated directly from Zod (`src/shared/schema.ts`). Groq returns structured signals categorized into Scam, Ghost, and Fresher-Mismatch lanes with exact quotes (where Mismatch lane applies only to posts labeled fresher, graduate, trainee, entry-level, junior, or intern, and each quote appears in only one lane).
 3. **Deterministic Rules Engine**: Before rendering, pure TypeScript functions in `src/shared/rules.ts` sanitize the output:
    - Quotes that do not match the post text after collapsing whitespace and ignoring case (while preserving exact punctuation) are discarded.
    - Signals derived solely from context answers are tagged as "From your answers" and exempted from quote matching.
@@ -26,8 +26,8 @@ PRD ref: `prd.md > The Core Journey`.
 3. **API Request**: Browser posts JSON payload matching the discriminated union request schema (`src/shared/schema.ts`) to `POST /api/analyze`.
 4. **Server Execution (`src/app/api/analyze/route.ts`)**:
    - Validates request payload using Zod (`src/shared/schema.ts`). On failure, returns `TOO_SHORT` or `INVALID_IMAGE`.
-   - Server-only modules (`src/server/gemini.ts`, `src/server/prompt.ts`) execute Gemini API call with structured schema (`z.toJSONSchema`) and prompt-injection defenses.
-   - Handles errors deterministically: `isJobPost === false` → `NOT_A_JOB_POST`; image mode with empty `extractedText` → `UNREADABLE_IMAGE`; HTTP 429 → `RATE_LIMITED`; invalid JSON or API failure → `AI_ERROR`.
+   - Server-only modules (`src/server/groq.ts`, `src/server/prompt.ts`) execute Groq API call with `response_format` `json_schema` generated via `z.toJSONSchema` (`strict: false`) and prompt-injection defenses. In text mode the model returns an empty `extractedText` and the server sets it to the user's original text, so highlights always map to the exact input.
+   - Handles errors deterministically: `isJobPost === false` → `NOT_A_JOB_POST`; image mode with empty `extractedText` → `UNREADABLE_IMAGE`; HTTP 429 → `RATE_LIMITED`; invalid JSON, schema failure after one retry, or API failure → `AI_ERROR`.
 5. **Deterministic Processing (`src/shared/rules.ts` & `src/shared/highlight.ts`)**:
    - `validateQuotes`: Drops invalid quotes (collapsing whitespace/ignoring case only, preserving punctuation); marks context signals as "From your answers".
    - `nextMove`: Computes stamp (**Skip** if Scam is High; **Verify first** if any lane is Medium/High; else **Apply**).
@@ -44,15 +44,15 @@ Implements `prd.md > Features and Behavior`.
 - **Server Guard**: `server-only` — *Ensures server modules (`src/server/`) can never be imported into browser bundles.* [server-only package](https://www.npmjs.com/package/server-only)
 - **Styling & Fonts**: Tailwind CSS v4 (configured via `@theme` in `src/app/globals.css`, no `tailwind.config.ts`) + `next/font/google` (*Fraunces*, *IBM Plex Sans*, *IBM Plex Mono*). [Tailwind v4 Docs](https://tailwindcss.com/docs)
 - **Schema Validation**: Zod v4 — *Validates client API requests, generates Gemini responseSchema via `z.toJSONSchema`, and validates AI responses.* [Zod Docs](https://zod.dev/)
-- **AI SDK**: `@google/genai` (Google Gen AI SDK) — *Server-side Gemini Flash API integration using structured JSON schema.* [Google Gen AI SDK Docs](https://github.com/googleapis/js-genai)
+- **AI SDK**: `groq-sdk` (Groq TypeScript SDK) — *Server-side Groq API integration using JSON schema structured outputs.* [Groq SDK Docs](https://github.com/groq/groq-typescript)
 - **Unit Testing**: Vitest — *Fast unit testing for pure logic in `src/shared/rules.ts` and `src/shared/highlight.ts`.* [Vitest Docs](https://vitest.dev/)
 - **Deployment**: Vercel Free Plan — *Zero-config hosting for Next.js App Router.* [Vercel Docs](https://vercel.com/docs)
 
 ## Where It Runs and How Someone Tries It
 - **Development**: Runs locally on Node.js v24+ via `npm run dev` at `http://localhost:3000`.
 - **Environment Variables**:
-  - `GEMINI_API_KEY`: Google Gemini API key (server-side only, set from Google AI Studio).
-  - `GEMINI_MODEL`: Gemini model identifier with image input capability set from AI Studio's current free-tier Flash model (no hardcoded default).
+  - `GROQ_API_KEY`: Groq API key (server-side only).
+  - `GROQ_MODEL`: Groq model identifier supporting image input and JSON schema structured outputs (no hardcoded default).
   - `.env.example` committed to git repository; `.env.local` kept private.
 - **Deployment**: Deployed on Vercel (`git push` integration).
 - **Submission Requirements**: Public GitHub repo + 1–3 minute demo video.
@@ -223,7 +223,7 @@ d:\devpost-hackathon/
 │   │   └── lib/
 │   │       └── image.ts            # Client-side image validation & downscaling
 │   ├── server/
-│   │   ├── gemini.ts               # Gemini client using z.toJSONSchema (server-only)
+│   │   ├── groq.ts                 # Groq client using z.toJSONSchema (server-only)
 │   │   └── prompt.ts               # System instructions & prompt builder (server-only)
 │   └── shared/
 │       ├── data/
@@ -250,11 +250,11 @@ d:\devpost-hackathon/
 ```
 
 ## External Services and Dependencies
-- **Google Gemini API (`@google/genai`)**:
-  - SDK: `https://github.com/googleapis/js-genai`
-  - Model: Read from `GEMINI_MODEL` (configured via AI Studio, no default fallback).
-  - Rate Limits & Cost: Set by AI Studio for the key.
-  - Key storage: `GEMINI_API_KEY` in environment variables.
+- **Groq API (`groq-sdk`)**:
+  - SDK: `https://github.com/groq/groq-typescript`
+  - Model: Read from `GROQ_MODEL` (supports image input and JSON schema structured outputs; no hardcoded default).
+  - Key storage: `GROQ_API_KEY` in environment variables.
+  - Response format: `json_schema` generated from Zod via `z.toJSONSchema` (`strict: false`), with one retry on invalid response before returning `AI_ERROR`.
 
 ## Important Failure Modes
 PRD ref: `prd.md > States and Boundaries`.
@@ -262,14 +262,14 @@ PRD ref: `prd.md > States and Boundaries`.
 - **API Request Validation Error**: Zod request schema failure returns `TOO_SHORT` or `INVALID_IMAGE`.
 - **Non-Job Post Input**: AI response returning `isJobPost === false` maps to `NOT_A_JOB_POST`.
 - **Unreadable Screenshot**: Image mode returning empty `extractedText` maps to `UNREADABLE_IMAGE`.
-- **API Rate Limit (HTTP 429)**: Gemini HTTP 429 status maps to `RATE_LIMITED`.
+- **API Rate Limit (HTTP 429)**: Groq HTTP 429 status maps to `RATE_LIMITED`.
 - **AI / Parsing Error**: Any other API error or invalid AI JSON response maps to `AI_ERROR`.
 - **Sample Fallback**: Built-in sample posts catching `RATE_LIMITED` or `AI_ERROR` display a saved example result from `src/shared/data/sample-results.ts` labeled *"Saved example result"*.
 - **Hallucinated Signal Quotes**: Handled deterministically by `src/shared/rules.ts > validateQuotes`. Quotes not matching the post text after collapsing whitespace and ignoring case (with exact punctuation preserved) are dropped before rendering.
 
 ## What Was Simplified and Why
 - **Client-Side Canvas Downscaling**: Replaces heavy server-side image processing libraries with HTML5 Canvas downscaling in `src/client/lib/image.ts` to stay under Vercel's 4.5 MB body limit.
-- **Single Source Schema (`z.toJSONSchema`)**: Automatically generates Gemini structured response schemas directly from Zod definitions, preventing schema drift between AI prompt configuration and server validation.
+- **Single Source Schema (`z.toJSONSchema`)**: Automatically generates Groq structured response schemas directly from Zod definitions, preventing schema drift between AI prompt configuration and server validation.
 - **Pure Function Verification**: Uses lightweight TypeScript substring checking in `src/shared/rules.ts` rather than complex NLP string distance engines.
 
 ## Decisions and Open Issues
@@ -283,14 +283,14 @@ PRD ref: `prd.md > States and Boundaries`.
 - **Quote Validation & Highlight Alignment**: Resolved by normalizing whitespace and casing during quote search while mapping character indices back to the original unmodified text string for highlight rendering in `PostView`.
 
 ### Open Issues
-None.
+- Bengali screenshot reading quality will be tested in Slice 4.
 
 ## Build Plan
 
 The build will proceed in 6 ordered, verifiable steps:
 
 1. **Slice 1: Scaffold & Static Input UI**: Set up Next.js + Tailwind v4 + Fonts + Zod + Vitest. Build `InputPanel`, `ContextChips`, and static page layout.
-2. **Slice 2: Gemini API Route & Samples**: Implement `src/shared/schema.ts`, `src/server/gemini.ts`, `src/server/prompt.ts`, `src/shared/data/samples.ts`, and `src/app/api/analyze/route.ts` for text analysis.
+2. **Slice 2: Groq API Route & Samples**: Implement `src/shared/schema.ts`, `src/server/groq.ts`, `src/server/prompt.ts`, `src/shared/data/samples.ts`, `src/shared/errors.ts`, and `src/app/api/analyze/route.ts` for text analysis.
 3. **Slice 3: Rules Engine, Highlights & Report UI**: Implement `src/shared/rules.ts`, `src/shared/highlight.ts`, and unit tests (`tests/rules.test.ts`, `tests/highlight.test.ts`). Build `ReportView`, `PostView`, `LaneCard`, and `NextMoveStamp`.
 4. **Slice 4: Image Handling & OCR**: Implement `src/client/lib/image.ts` for image format/size validation and client-side downscaling. Test screenshot uploads.
 5. **Slice 5: Loading, Error States & Fallback for Sample Posts**: Build `LoadingSteps`, `ErrorNotice`, and `src/shared/data/sample-results.ts` for fallback for sample posts.
