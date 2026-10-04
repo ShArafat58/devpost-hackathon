@@ -283,7 +283,7 @@ PRD ref: `prd.md > States and Boundaries`.
 - **Quote Validation & Highlight Alignment**: Resolved by normalizing whitespace and casing during quote search while mapping character indices back to the original unmodified text string for highlight rendering in `PostView`.
 
 ### Open Issues
-- Bengali screenshot reading quality will be tested in Slice 4.
+- Bengali screenshot OCR tested in Slice 4: Groq reads Bengali screenshots accurately enough for quote highlights to match, with occasional misread words on unfamiliar names. Groq remains sole provider; Slice 6 will add a user note to compare AI text reading with the image.
 
 ## Build Plan
 

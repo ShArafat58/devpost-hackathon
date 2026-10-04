@@ -39,7 +39,7 @@ Build mode: fast
   Learner check: Select a sample post, submit, and confirm report view highlights quotes and shows recommendation stamp.
   Commit: `Implement rules engine, highlight mapping, and report UI`
 
-- [ ] **4. Image Handling & OCR**
+- [x] **4. Image Handling & OCR**
   Becomes usable: Screenshot upload tab validates and downscales images client-side before API submission.
   Why now: Image handling adds client canvas downscaling and multimodal Gemini processing onto existing API flow.
   PRD ref: `prd.md > Core Journey (Step 2)`
