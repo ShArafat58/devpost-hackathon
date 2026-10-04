@@ -239,12 +239,14 @@ d:\devpost-hackathon/
 │   ├── prd.md                      # Approved PRD specification
 │   ├── scope.md                    # Approved Scope specification
 │   └── spec.md                     # Approved Technical Specification
+├── scripts/
+│   └── capture-sample-results.mjs # Script to capture real API results for sample posts
 ├── tests/
 │   ├── highlight.test.ts           # Vitest unit tests for highlight range mappings
 │   └── rules.test.ts               # Vitest unit tests for quote verification & next move
 ├── .env.example                    # Environment variable template
 ├── next.config.ts                  # Next.js configuration
-├── package.json                    # Application dependencies & scripts
+├── package.json                    # Application dependencies & npm scripts (including capture:samples)
 ├── tsconfig.json                   # Strict TypeScript configuration
 └── vitest.config.ts                # Vitest configuration
 ```

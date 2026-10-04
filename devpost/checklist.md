@@ -49,7 +49,7 @@ Build mode: fast
   Learner check: Upload job posting screenshot and verify extracted text renders in report view.
   Commit: `Add client-side image downscaling and screenshot analysis`
 
-- [ ] **5. Loading, Error States & Fallback for Sample Posts**
+- [x] **5. Loading, Error States & Fallback for Sample Posts**
   Becomes usable: Progressive step indicators, friendly error notices, and offline/rate-limit fallback results for sample posts.
   Why now: Ensures robust error handling and smooth visual feedback for all edge cases.
   PRD ref: `prd.md > States and Boundaries`
