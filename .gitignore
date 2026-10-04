@@ -3,3 +3,12 @@
 .env.local
 .env.*
 !.env.example
+# Next.js app
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env*.local
+.vercel/
