@@ -29,7 +29,7 @@ Build mode: fast
   Learner check: Submit sample text and verify API returns structured JSON response.
   Commit: `Add Gemini API route and request/response schemas`
 
-- [ ] **3. Rules Engine, Highlights & Report UI**
+- [x] **3. Rules Engine, Highlights & Report UI**
   Becomes usable: Deterministic quote validation, highlight mapping, and full report rendering with LaneCards and NextMoveStamp.
   Why now: Core logic for signal highlighting and recommendation stamp must be verified before UI polish.
   PRD ref: `prd.md > Core Journey (Steps 5-6)`
