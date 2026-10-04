@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { analyzePost } from "@/server/groq";
 import { AnalyzeError, ERROR_STATUS, type ApiErrorBody, type ErrorCode } from "@/shared/errors";
-import { AnalyzeRequestSchema, type AnalyzeResponse } from "@/shared/schema";
+import { buildReport } from "@/shared/rules";
+import { AnalyzeRequestSchema } from "@/shared/schema";
+import type { AnalyzeSuccessBody } from "@/shared/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -52,14 +54,15 @@ export async function POST(req: Request) {
         }
 
         // Text mode: analyze the user's exact text, never a model rewrite of it
-        const extractedText = request.mode === "text" ? request.text : result.extractedText.trim();
+        const postText = request.mode === "text" ? request.text : result.extractedText.trim();
 
-        if (request.mode === "image" && extractedText.length === 0) {
+        if (request.mode === "image" && postText.length === 0) {
             return errorResponse("UNREADABLE_IMAGE");
         }
 
-        const report: AnalyzeResponse = { ...result, extractedText };
-        return NextResponse.json({ report });
+        // Deterministic rules run on the server: invented quotes never reach the browser
+        const report = buildReport(result, postText);
+        return NextResponse.json<AnalyzeSuccessBody>({ report });
     } catch (error) {
         if (error instanceof AnalyzeError) {
             if (error.code === "AI_ERROR") console.error("[analyze]", error.message);
