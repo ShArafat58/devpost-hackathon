@@ -64,9 +64,9 @@ Implements `prd.md > Look and Feel`.
 - **Color & Design Tokens**: Defined using Tailwind v4 `@theme` directives in `src/app/globals.css`:
   - Background: Warm paper `#F4F1EA`
   - Typography: Ink Black `#1B1B1B`
-  - Scam Highlight: Coral Red stroke (`#FF6B6B` / `bg-red-200 text-red-950 border-b-2 border-red-500`)
-  - Ghost Highlight: Slate Blue-Gray stroke (`#6C7A89` / `bg-slate-200 text-slate-950 border-b-2 border-slate-500`)
-  - Fresher-Mismatch Highlight: Amber Yellow stroke (`#F39C12` / `bg-amber-200 text-amber-950 border-b-2 border-amber-500`)
+  - Scam Highlight: Translucent Red tint (`#E5484D` / `bg-scam/45 text-ink` behind ink text)
+  - Ghost Highlight: Translucent Highlighter Yellow tint (`#F5C400` / `bg-ghost/60 text-ink` behind ink text)
+  - Fresher-Mismatch Highlight: Translucent Blue tint (`#2F6FDB` / `bg-mismatch/35 text-ink` behind ink text)
 - **Typography Integration**:
   - Headings & Stamps: `Fraunces` (serif)
   - UI Labels & Body: `IBM Plex Sans` (sans-serif)

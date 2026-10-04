@@ -23,7 +23,7 @@ Source: `scope.md > The Unique Kernel`, `scope.md > Who It's For`, `scope.md > T
 5. **Loading**: App shows progressive step labels ("Reading the post" → "Looking for signals" → "Checking quotes") instead of a generic spinner.
 6. **Report Generation**: Within seconds, the user receives an evidence-based report:
    - *Post View*: Displays full post text (or OCR-extracted screenshot text) with quoted evidence highlighted in lane-specific highlighter colors.
-   - *Three Signal Lanes*: Scam signals (coral red), Ghost signals (slate blue-gray), and Fresher-mismatch signals (amber yellow). Each lane shows signal strength (Low / Medium / High), quoted text, and a plain-language explanation.
+   - *Three Signal Lanes*: Scam signals (translucent red `#E5484D`), Ghost signals (translucent highlighter yellow `#F5C400`), and Fresher-mismatch signals (translucent blue `#2F6FDB`). Each lane shows signal strength (Low / Medium / High), quoted text, and a plain-language explanation.
    - *Interactive Highlights*: Clicking any signal item in a lane card smooth-scrolls to and pulses its highlighted line in the Post View.
    - *Recommended Move*: Displays a rubber-stamp badge (**Apply** / **Verify first** / **Skip**) plus 2-3 concrete verification steps.
    - *Persistent Disclaimer*: Footer note stating: *"Signals, not verdicts. A post can't prove what a company decides internally."*
@@ -45,10 +45,10 @@ Single-page application operating in two distinct view states:
   - Body Text: Clean sans-serif (*IBM Plex Sans*).
   - Post / Source Text: Typewriter-style monospace (*IBM Plex Mono*).
 - **Highlighter Signal Styling**:
-  - Scam Signals: Coral red highlighter stroke (`#FF6B6B` tone) + warning icon.
-  - Ghost Signals: Slate blue-gray highlighter stroke (`#6C7A89` tone) + ghost icon.
-  - Fresher-Mismatch Signals: Amber yellow highlighter stroke (`#F39C12` tone) + mismatch icon.
-  - *Accessibility*: High contrast, each lane includes distinct icons and text labels so color is never the sole indicator.
+  - Scam Signals: Translucent red highlighter stroke (`#E5484D` tint) behind ink text + warning icon.
+  - Ghost Signals: Translucent highlighter yellow stroke (`#F5C400` tint) behind ink text + ghost icon.
+  - Fresher-Mismatch Signals: Translucent blue highlighter stroke (`#2F6FDB` tint) behind ink text + mismatch icon.
+  - *Accessibility*: High contrast ink text, translucent tints behind text, plus a lane icon and text label so color is never the sole indicator.
 - **Next Move Stamp**: Rubber-stamp graphic with slight rotational angle.
 - **Explicitly Avoided**: Purple/blue AI gradients, glassmorphism, chat bubbles, emoji-heavy UI, generic dashboard cards.
 - **Accessibility & Usability**: Visible focus states, keyboard-usable tabs and context chips.
