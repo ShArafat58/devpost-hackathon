@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { ContextChips } from "@/client/components/ContextChips";
+import { ErrorNotice } from "@/client/components/ErrorNotice";
 import { InputPanel, type InputTab } from "@/client/components/InputPanel";
+import { LoadingSteps } from "@/client/components/LoadingSteps";
 import { ReportView } from "@/client/components/ReportView";
 import { isAcceptedImage, prepareImage } from "@/client/lib/image";
+import { SAMPLE_RESULTS } from "@/shared/data/sample-results";
 import { SAMPLE_POSTS, type SamplePost } from "@/shared/data/samples";
 import {
     ERROR_MESSAGES,
@@ -22,6 +25,9 @@ const DEFAULT_CONTEXT: Context = {
 };
 
 const MIN_TEXT_CHARS = 80;
+
+/** Errors where a built-in sample may fall back to its saved result */
+const FALLBACK_CODES: ReadonlySet<ErrorCode> = new Set(["RATE_LIMITED", "AI_ERROR"]);
 
 const LANE_KEYS = [
     { label: "Scam signals", swatch: "bg-scam/45" },
@@ -42,6 +48,7 @@ export default function Home() {
     const [status, setStatus] = useState<Status>("idle");
     const [report, setReport] = useState<ProcessedReport | null>(null);
     const [reportFromScreenshot, setReportFromScreenshot] = useState(false);
+    const [savedExample, setSavedExample] = useState(false);
     const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
 
     const hasInput =
@@ -86,6 +93,12 @@ export default function Home() {
         if (sample) setContext(sample.context);
     }
 
+    function handleTrySample() {
+        setTab("sample");
+        setStatus("idle");
+        setErrorCode(null);
+    }
+
     async function buildRequest(): Promise<AnalyzeRequest | null> {
         if (tab === "text") return { mode: "text", text, context };
 
@@ -99,7 +112,20 @@ export default function Home() {
         return { mode: "image", imageBase64: image.base64, mimeType: image.mimeType, context };
     }
 
-    function showError(code: ErrorCode) {
+    function showReport(nextReport: ProcessedReport, fromScreenshot: boolean, isSaved: boolean) {
+        setReport(nextReport);
+        setReportFromScreenshot(fromScreenshot);
+        setSavedExample(isSaved);
+        setStatus("report");
+        window.scrollTo({ top: 0 });
+    }
+
+    /** Built-in samples fall back to a saved real result; everything else shows the error. */
+    function handleFailure(code: ErrorCode) {
+        if (tab === "sample" && sampleId && FALLBACK_CODES.has(code)) {
+            showReport(SAMPLE_RESULTS[sampleId], false, true);
+            return;
+        }
         setErrorCode(code);
         setStatus("error");
     }
@@ -112,7 +138,7 @@ export default function Home() {
         try {
             request = await buildRequest();
         } catch {
-            showError("INVALID_IMAGE");
+            handleFailure("INVALID_IMAGE");
             return;
         }
         if (!request) {
@@ -121,7 +147,7 @@ export default function Home() {
         }
 
         if (request.mode === "text" && request.text.trim().length < MIN_TEXT_CHARS) {
-            showError("TOO_SHORT");
+            handleFailure("TOO_SHORT");
             return;
         }
 
@@ -135,28 +161,26 @@ export default function Home() {
 
             if (!res.ok) {
                 const code = (body as ApiErrorBody | null)?.error?.code;
-                showError(isErrorCode(code) ? code : "AI_ERROR");
+                handleFailure(isErrorCode(code) ? code : "AI_ERROR");
                 return;
             }
 
             const nextReport = (body as AnalyzeSuccessBody | null)?.report;
             if (!nextReport) {
-                showError("AI_ERROR");
+                handleFailure("AI_ERROR");
                 return;
             }
 
-            setReport(nextReport);
-            setReportFromScreenshot(request.mode === "image");
-            setStatus("report");
-            window.scrollTo({ top: 0 });
+            showReport(nextReport, request.mode === "image", false);
         } catch {
-            showError("AI_ERROR");
+            handleFailure("AI_ERROR");
         }
     }
 
     function handleReset() {
         setReport(null);
         setReportFromScreenshot(false);
+        setSavedExample(false);
         setStatus("idle");
         setErrorCode(null);
         setTab("text");
@@ -168,11 +192,11 @@ export default function Home() {
         window.scrollTo({ top: 0 });
     }
 
-    const showReport = status === "report" && report !== null;
+    const reportVisible = status === "report" && report !== null;
 
     return (
         <main
-            className={`mx-auto w-full px-5 pb-16 pt-10 sm:pt-16 ${showReport ? "max-w-6xl" : "max-w-3xl"}`}
+            className={`mx-auto w-full px-5 pb-16 pt-10 sm:pt-16 ${reportVisible ? "max-w-6xl" : "max-w-3xl"}`}
         >
             <header className="mb-10">
                 <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
@@ -194,8 +218,13 @@ export default function Home() {
                 </ul>
             </header>
 
-            {showReport ? (
-                <ReportView report={report} fromScreenshot={reportFromScreenshot} onReset={handleReset} />
+            {reportVisible ? (
+                <ReportView
+                    report={report}
+                    fromScreenshot={reportFromScreenshot}
+                    savedExample={savedExample}
+                    onReset={handleReset}
+                />
             ) : (
                 <>
                     <section aria-labelledby="step-post" className="mb-10">
@@ -225,21 +254,21 @@ export default function Home() {
                         <SectionLabel id="step-check" index="03" title="Run the check" />
 
                         {status === "error" && errorCode && (
-                            <div role="alert" className="mb-5 rounded-md border-[1.5px] border-stamp-skip bg-card p-4">
-                                <p className="font-serif text-lg">{ERROR_MESSAGES[errorCode].title}</p>
-                                <p className="mt-1 text-sm text-ink-soft">{ERROR_MESSAGES[errorCode].body}</p>
-                            </div>
+                            <ErrorNotice code={errorCode} onRetry={handleCheck} onTrySample={handleTrySample} />
                         )}
 
-                        <button
-                            type="button"
-                            onClick={handleCheck}
-                            disabled={!hasInput || status === "loading"}
-                            aria-busy={status === "loading"}
-                            className="w-full rounded-md border-[1.5px] border-ink bg-ink px-6 py-4 font-serif text-xl text-paper shadow-[4px_4px_0_var(--color-ink-soft)] transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 sm:w-auto"
-                        >
-                            {status === "loading" ? "Checking…" : "Check this post"}
-                        </button>
+                        {status === "loading" ? (
+                            <LoadingSteps fromScreenshot={tab === "image"} />
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={handleCheck}
+                                disabled={!hasInput}
+                                className="w-full rounded-md border-[1.5px] border-ink bg-ink px-6 py-4 font-serif text-xl text-paper shadow-[4px_4px_0_var(--color-ink-soft)] transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 sm:w-auto"
+                            >
+                                Check this post
+                            </button>
+                        )}
                     </section>
                 </>
             )}

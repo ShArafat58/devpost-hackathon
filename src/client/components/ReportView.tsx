@@ -10,10 +10,11 @@ import { LANE_ORDER, type ProcessedReport } from "@/shared/types";
 interface ReportViewProps {
     report: ProcessedReport;
     fromScreenshot: boolean;
+    savedExample: boolean;
     onReset: () => void;
 }
 
-export function ReportView({ report, fromScreenshot, onReset }: ReportViewProps) {
+export function ReportView({ report, fromScreenshot, savedExample, onReset }: ReportViewProps) {
     const postRef = useRef<HTMLDivElement>(null);
     const [activeSignalId, setActiveSignalId] = useState<string | null>(null);
 
@@ -59,6 +60,19 @@ export function ReportView({ report, fromScreenshot, onReset }: ReportViewProps)
                     Check another post
                 </button>
             </div>
+
+            {savedExample && (
+                <div
+                    role="note"
+                    className="mb-6 rounded-md border-[1.5px] border-dashed border-ink bg-paper-deep px-4 py-3"
+                >
+                    <p className="font-mono text-xs uppercase tracking-[0.2em]">Saved example result</p>
+                    <p className="mt-1 text-sm text-ink-soft">
+                        The AI service didn&apos;t respond, so this is a result captured earlier from a real run
+                        of this sample with its default answers.
+                    </p>
+                </div>
+            )}
 
             {/* Mobile: stamp, lanes, then post. Desktop: post left, stamp + lanes right. */}
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
