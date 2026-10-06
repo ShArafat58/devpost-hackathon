@@ -44,7 +44,7 @@ Implements `prd.md > Features and Behavior`.
 - **Server Guard**: `server-only` — *Ensures server modules (`src/server/`) can never be imported into browser bundles.* [server-only package](https://www.npmjs.com/package/server-only)
 - **Styling & Fonts**: Tailwind CSS v4 (configured via `@theme` in `src/app/globals.css`, no `tailwind.config.ts`) + `next/font/google` (*Fraunces*, *IBM Plex Sans*, *IBM Plex Mono*). [Tailwind v4 Docs](https://tailwindcss.com/docs)
 - **Schema Validation**: Zod v4 — *Validates client API requests, generates Gemini responseSchema via `z.toJSONSchema`, and validates AI responses.* [Zod Docs](https://zod.dev/)
-- **AI SDK**: `groq-sdk` (Groq TypeScript SDK) — *Server-side Groq API integration using JSON schema structured outputs.* [Groq SDK Docs](https://github.com/groq/groq-typescript)
+- **AI SDK**: `groq-sdk` (Groq TypeScript SDK) — *Server-side Groq API integration using JSON schema structured outputs; text requests retry on an optional text-only fallback model set by `GROQ_TEXT_FALLBACK_MODEL` (`openai/gpt-oss-120b`) when `GROQ_MODEL` is rate limited, while image requests use only `GROQ_MODEL`.* [Groq SDK Docs](https://github.com/groq/groq-typescript)
 - **Unit Testing**: Vitest — *Fast unit testing for pure logic in `src/shared/rules.ts` and `src/shared/highlight.ts`.* [Vitest Docs](https://vitest.dev/)
 - **Deployment**: Vercel Free Plan — *Zero-config hosting for Next.js App Router.* [Vercel Docs](https://vercel.com/docs)
 
@@ -53,6 +53,7 @@ Implements `prd.md > Features and Behavior`.
 - **Environment Variables**:
   - `GROQ_API_KEY`: Groq API key (server-side only).
   - `GROQ_MODEL`: Groq model identifier supporting image input and JSON schema structured outputs (no hardcoded default).
+  - `GROQ_TEXT_FALLBACK_MODEL`: Optional text-only fallback model identifier (`openai/gpt-oss-120b`) used when `GROQ_MODEL` is rate limited on text requests.
   - `.env.example` committed to git repository; `.env.local` kept private.
 - **Deployment**: Deployed on Vercel (`git push` integration).
 - **Submission Requirements**: Public GitHub repo + 1–3 minute demo video.
@@ -254,7 +255,7 @@ d:\devpost-hackathon/
 ## External Services and Dependencies
 - **Groq API (`groq-sdk`)**:
   - SDK: `https://github.com/groq/groq-typescript`
-  - Model: Read from `GROQ_MODEL` (supports image input and JSON schema structured outputs; no hardcoded default).
+  - Model: Read from `GROQ_MODEL` (supports image input and JSON schema structured outputs; no hardcoded default). Text requests retry on an optional text-only fallback model set by `GROQ_TEXT_FALLBACK_MODEL` (`openai/gpt-oss-120b`) when `GROQ_MODEL` is rate limited; image requests use only `GROQ_MODEL`.
   - Key storage: `GROQ_API_KEY` in environment variables.
   - Response format: `json_schema` generated from Zod via `z.toJSONSchema` (`strict: false`), with one retry on invalid response before returning `AI_ERROR`.
 
@@ -264,7 +265,7 @@ PRD ref: `prd.md > States and Boundaries`.
 - **API Request Validation Error**: Zod request schema failure returns `TOO_SHORT` or `INVALID_IMAGE`.
 - **Non-Job Post Input**: AI response returning `isJobPost === false` maps to `NOT_A_JOB_POST`.
 - **Unreadable Screenshot**: Image mode returning empty `extractedText` maps to `UNREADABLE_IMAGE`.
-- **API Rate Limit (HTTP 429)**: Groq HTTP 429 status maps to `RATE_LIMITED`.
+- **API Rate Limit (HTTP 429)**: Groq HTTP 429 status maps to `RATE_LIMITED`. When `GROQ_MODEL` is rate limited, text requests retry on an optional text-only fallback model set by `GROQ_TEXT_FALLBACK_MODEL` (`openai/gpt-oss-120b`); image requests use only `GROQ_MODEL`.
 - **AI / Parsing Error**: Any other API error or invalid AI JSON response maps to `AI_ERROR`.
 - **Sample Fallback**: Built-in sample posts catching `RATE_LIMITED` or `AI_ERROR` display a saved example result from `src/shared/data/sample-results.ts` labeled *"Saved example result"*.
 - **Hallucinated Signal Quotes**: Handled deterministically by `src/shared/rules.ts > validateQuotes`. Quotes not matching the post text after collapsing whitespace and ignoring case (with exact punctuation preserved) are dropped before rendering.
